@@ -1,4 +1,13 @@
 cradle:
   cabal:
+    - path: "app"
+      component: "exe:server"
+
     - path: "src"
-      component: "exe:haskell-template"
+      component: "lib:local-library"
+
+    - path: "test"
+      component: "test:tests"
+
+    - path: "config"
+      component: "lib:config"

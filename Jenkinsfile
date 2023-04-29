@@ -14,7 +14,7 @@ pipeline {
         stage ('Flake checks') {
             steps {
                 sh '''
-                    # Sandbox must be disabed for:
+                    # Sandbox must be disabled for:
                     # https://github.com/srid/haskell-flake/issues/21
                     nix \
                         --option sandbox false \
