@@ -4,7 +4,7 @@ This project uses VS Code's Dev Containers feature to provide nix, shell executa
 
 ### Database
 
-From the integrated terminal run `nix develop .#postgres` to start a nix shell that has postgres.
+From the integrated terminal run `nix develop .#postgres --impure` to start a nix shell that has postgres.
 Inside the nix shell, run `devenv up` to start the database service.
 
 ### Template
