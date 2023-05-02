@@ -1,4 +1,6 @@
-module LocalLibrary.Config (InitServer (..)) where
+module LocalLibrary.Config (
+  InitServer (..),
+) where
 
 import Network.Wai.Handler.Warp (Port)
 import Options.Generic (ParseRecord, type (<?>))

@@ -145,27 +145,41 @@ common web-deps
     , wai
     , warp
 
+common db-deps
+  build-depends:
+    , persistent
+    , persistent-documentation
+    , persistent-lens
+    , persistent-migration
+    , persistent-pagination
+    , persistent-postgresql
+    , persistent-postgresql-streaming
+    , postgresql-simple
+
 library
-  import:          shared, web-deps
-  exposed-modules: LocalLibrary
+  import:          shared, web-deps, db-deps
+  exposed-modules:
+    LocalLibrary.API
+    LocalLibrary.Database.Migrate
+    LocalLibrary.Database.Schema
+    LocalLibrary.Greetings.API
+    LocalLibrary.Greetings.Model
+    LocalLibrary.Greetings.Queries
+    LocalLibrary.Greetings.SampleData
+
   hs-source-dirs:  src
 
-library config
-  import:          shared, web-deps
-  exposed-modules: LocalLibrary.Config
-  hs-source-dirs:  config
-
 executable server
-  import:         shared, web-deps
+  import:         shared, web-deps, db-deps
   main-is:        Main.hs
   hs-source-dirs: app
-  build-depends:
-    , config
-    , local-library
+  other-modules:  LocalLibrary.Config
+  build-depends:  local-library
 
 test-suite tests
-  import:         shared, test-deps, web-deps
+  import:         shared, test-deps, web-deps, db-deps
   main-is:        Spec.hs
   type:           exitcode-stdio-1.0
   hs-source-dirs: test
   build-depends:  local-library
+  other-modules:  Spec.Greetings

@@ -14,16 +14,15 @@
       "extensions": [
         "haskell.haskell",
         "arrterian.nix-env-selector",
-        "bbenoist.Nix",
-        "jnoortheen.nix-ide",
-        "tamasfe.even-better-toml",
-        "ms-azuretools.vscode-docker",
         "phoityne.phoityne-vscode",
         "fsevenm.run-it-on"
       ]
     }
   },
   "portsAttributes": {
+	"1123": {
+		"label": "tabnine"
+	},
 	"5432": {
 		"label": "postgres"
 	},
@@ -35,6 +34,12 @@
 	},
 	"8888": {
 		"label": "hoogle"
+	},
+	"49152": {
+		"label": "tabnine local"
+	},
+	"49153": {
+		"label": "tabnine local"
 	}
 }
 }

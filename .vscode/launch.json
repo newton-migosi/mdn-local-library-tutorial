@@ -25,7 +25,7 @@
         },
         {
             "forceInspect": false,
-            "ghciCmd": "cabal repl exe:server -w ghci-dap --repl-no-load --builddir=${workspaceFolder}/.vscode/dist-cabal-repl -v",
+            "ghciCmd": "cabal repl -w ghci-dap --repl-no-load --builddir=${workspaceFolder}/.vscode/dist-cabal-repl -v",
             "ghciEnv": {},
             "ghciInitialPrompt": "> ",
             "ghciPrompt": "H>>= ",

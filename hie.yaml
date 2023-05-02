@@ -8,6 +8,3 @@ cradle:
 
     - path: "test"
       component: "test:tests"
-
-    - path: "config"
-      component: "lib:config"

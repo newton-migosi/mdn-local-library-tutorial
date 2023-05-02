@@ -22,14 +22,16 @@ import Prettyprinter.Render.Text (renderStrict)
 import Servant qualified
 import Text.Printf (printf)
 
-import LocalLibrary (
+import LocalLibrary.API (
   API,
-  handleLang,
-  migrateLibraryDB,
-  populateGreetingsTable,
+  handle,
  )
 import LocalLibrary.Config (
   InitServer (RunWarpServer, WriteMigrationScript),
+ )
+import LocalLibrary.Database.Migrate (
+  migrateGreetingsTable,
+  migrateLibraryDB,
  )
 
 {- |
@@ -70,11 +72,11 @@ runServer = do
 
   case arg of
     RunWarpServer -> do
-      Servant.serve (Proxy @API) (handleLang dbPool)
+      Servant.serve (Proxy @API) (handle dbPool)
         & Warp.runSettings settings
     WriteMigrationScript -> do
       migrateLibraryDB dbPool
-      populateGreetingsTable dbPool
+      migrateGreetingsTable dbPool
 
 logger :: Request -> Status -> Maybe Integer -> IO ()
 logger req status _maybeFileSize =
