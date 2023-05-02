@@ -8,3 +8,6 @@ cradle:
 
     - path: "test"
       component: "test:tests"
+
+    - path: "db"
+      component: "exe:manage-db"

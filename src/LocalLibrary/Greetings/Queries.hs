@@ -16,7 +16,12 @@ import Database.Beam.Query (
 import LocalLibrary.Greetings.Model (Greeting, GreetingEntity)
 import Optics.Getter (view)
 
-populateGreetingsTable :: GreetingEntity db -> [Greeting] -> Pg ()
+populateGreetingsTable ::
+  forall db.
+  (Database Postgres db) =>
+  GreetingEntity db ->
+  [Greeting] ->
+  Pg ()
 populateGreetingsTable table dat = runInsert $ do
   insert table $ insertValues dat
 

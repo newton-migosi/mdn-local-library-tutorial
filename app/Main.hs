@@ -1,38 +1,15 @@
 module Main (main) where
 
-import Data.Pool (createPool)
-import Database.Beam.Postgres (defaultConnectInfo)
-import Database.Beam.Postgres qualified as DB
 import Main.Utf8 qualified as Utf8
-import Network.HTTP.Types (Status)
-import Network.HTTP.Types qualified as Http
-import Network.Wai (Request)
-import Network.Wai qualified as Wai
 import Network.Wai.Handler.Warp qualified as Warp
-import Options.Generic (getRecord)
-import Prettyprinter (
-  Pretty (pretty),
-  defaultLayoutOptions,
-  hsep,
-  layoutPretty,
-  parens,
-  viaShow,
- )
-import Prettyprinter.Render.Text (renderStrict)
-import Servant qualified
-import Text.Printf (printf)
+import Optics.Getter (view)
+import Servant (serve)
 
 import LocalLibrary.API (
   API,
   handle,
  )
-import LocalLibrary.Config (
-  InitServer (RunWarpServer, WriteMigrationScript),
- )
-import LocalLibrary.Database.Migrate (
-  migrateGreetingsTable,
-  migrateLibraryDB,
- )
+import LocalLibrary.Config qualified as Config
 
 {- |
  Main entry point.
@@ -46,44 +23,16 @@ main = do
     runServer
 
 runServer :: IO ()
-runServer = do
-  let settings =
-        Warp.defaultSettings
-          & Warp.setPort port
-          & Warp.setLogger logger
-          & Warp.setTimeout timeout
+runServer = void $ runMaybeT $ do
+  conf <- MaybeT Config.getSettings
 
-      timeout = 30
-      port = 8081
+  let runSettings =
+        Warp.runSettings
+          . Warp.setLogger Config.customLogger
+          . Config.mkWarpSettings
 
-      connectInfo = defaultConnectInfo
+  dbPool <- Config.createDbConnectionPool conf & liftIO
 
-  arg <- getRecord ""
-
-  dbPool <-
-    createPool
-      (DB.connect connectInfo)
-      DB.close
-      1
-      10
-      5
-
-  printf "Starting server on port 8081\n"
-
-  case arg of
-    RunWarpServer -> do
-      Servant.serve (Proxy @API) (handle dbPool)
-        & Warp.runSettings settings
-    WriteMigrationScript -> do
-      migrateLibraryDB dbPool
-      migrateGreetingsTable dbPool
-
-logger :: Request -> Status -> Maybe Integer -> IO ()
-logger req status _maybeFileSize =
-  putTextLn . renderStrict . layoutPretty defaultLayoutOptions $
-    hsep
-      [ "[info]"
-      , viaShow $ Wai.requestMethod req
-      , viaShow $ Wai.rawPathInfo req
-      , parens $ pretty $ Http.statusCode status
-      ]
+  Servant.serve (Proxy @API) (handle dbPool)
+    & runSettings (view #warpConfig conf)
+    & liftIO

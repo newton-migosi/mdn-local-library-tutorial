@@ -98,6 +98,7 @@ common shared
     , resource-pool
     , resourcet
     , shower
+    , safe-exceptions
     , time
     , with-utf8
 
@@ -147,6 +148,7 @@ common web-deps
 
 common db-deps
   build-depends:
+    , esqueleto
     , persistent
     , persistent-documentation
     , persistent-lens
@@ -160,6 +162,7 @@ library
   import:          shared, web-deps, db-deps
   exposed-modules:
     LocalLibrary.API
+    LocalLibrary.Config
     LocalLibrary.Database.Migrate
     LocalLibrary.Database.Schema
     LocalLibrary.Greetings.API
@@ -173,7 +176,13 @@ executable server
   import:         shared, web-deps, db-deps
   main-is:        Main.hs
   hs-source-dirs: app
-  other-modules:  LocalLibrary.Config
+  other-modules:
+  build-depends:  local-library
+
+executable manage-db
+  import:         shared, web-deps, db-deps
+  main-is:        Main.hs
+  hs-source-dirs: db
   build-depends:  local-library
 
 test-suite tests
