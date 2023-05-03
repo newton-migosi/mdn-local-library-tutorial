@@ -3,7 +3,6 @@ module Spec where
 import Control.Exception.Safe (throw)
 import Data.Pool (Pool)
 import Database.PostgreSQL.Simple (Connection)
-import Main.Utf8 qualified as Utf8
 import Network.Wai.Handler.Warp qualified as Warp
 import Servant.Server (serve)
 import Test.Hspec (
@@ -22,16 +21,15 @@ data ConfigParseError = ConfigParseError
   deriving stock (Show)
   deriving anyclass (Exception)
 
-main :: IO ()
-main =
-  Utf8.withUtf8 $ do
-    mDbPool <- runMaybeT $ do
-      conf <- MaybeT Config.getSettings
-      Config.createDbConnectionPool conf & liftIO
+runTests :: IO ()
+runTests = do
+  mDbPool <- runMaybeT $ do
+    conf <- MaybeT Config.getSettings
+    Config.createDbConnectionPool conf & liftIO
 
-    dbPool <- maybe (throw ConfigParseError) pure mDbPool
+  dbPool <- maybe (throw ConfigParseError) pure mDbPool
 
-    hspec $ spec dbPool
+  hspec $ spec dbPool
 
 spec :: Pool Connection -> Spec
 spec dbPool = do

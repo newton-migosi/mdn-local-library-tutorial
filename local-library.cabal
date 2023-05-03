@@ -97,8 +97,8 @@ common shared
     , relude                >=1.0
     , resource-pool
     , resourcet
-    , shower
     , safe-exceptions
+    , shower
     , time
     , with-utf8
 
@@ -187,8 +187,10 @@ executable manage-db
 
 test-suite tests
   import:         shared, test-deps, web-deps, db-deps
-  main-is:        Spec.hs
+  main-is:        Main.hs
   type:           exitcode-stdio-1.0
   hs-source-dirs: test
   build-depends:  local-library
-  other-modules:  Spec.Greetings
+  other-modules:
+    Spec
+    Spec.Greetings
