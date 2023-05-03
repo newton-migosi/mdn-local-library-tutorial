@@ -1,0 +1,196 @@
+cabal-version:      2.4
+name:               local-library
+version:            0.1.0.0
+category:           Web
+
+-- TODO: Before hackage release.
+-- A short (one-line) description of the package.
+-- synopsis:
+
+-- A longer description of the package.
+-- description:
+
+-- A URL where users can report bugs.
+-- bug-reports:
+
+extra-source-files:
+  LICENSE
+  README.md
+
+common shared
+  ghc-options:
+    -Wall -Wincomplete-record-updates -Wincomplete-uni-patterns
+    -Wmissing-deriving-strategies -Wunused-foralls -Wunused-foralls
+    -fprint-explicit-foralls -fprint-explicit-kinds
+
+  mixins:
+    base hiding (Prelude),
+    relude (Relude as Prelude, Relude.Container.One),
+    relude
+
+  default-extensions:
+    NoFieldSelectors
+    NoStarIsType
+    BangPatterns
+    ConstraintKinds
+    DataKinds
+    DeriveAnyClass
+    DeriveDataTypeable
+    DeriveFoldable
+    DeriveFunctor
+    DeriveGeneric
+    DeriveLift
+    DeriveTraversable
+    DerivingStrategies
+    DerivingVia
+    DuplicateRecordFields
+    EmptyCase
+    EmptyDataDecls
+    EmptyDataDeriving
+    ExistentialQuantification
+    ExplicitForAll
+    FlexibleContexts
+    FlexibleInstances
+    GADTSyntax
+    GeneralisedNewtypeDeriving
+    ImportQualifiedPost
+    KindSignatures
+    LambdaCase
+    LinearTypes
+    MultiParamTypeClasses
+    MultiWayIf
+    NumericUnderscores
+    OverloadedLabels
+    OverloadedStrings
+    PolyKinds
+    PostfixOperators
+    RankNTypes
+    ScopedTypeVariables
+    StandaloneDeriving
+    StandaloneKindSignatures
+    TupleSections
+    TypeApplications
+    TypeFamilies
+    TypeOperators
+    UnicodeSyntax
+    ViewPatterns
+
+  build-depends:
+    , aeson
+    , async
+    , base                  >=4.13.0.0 && <4.18.0.0.0
+    , data-default
+    , directory
+    , exceptions
+    , fast-logger
+    , filepath
+    , generic-lens
+    , hs-opentelemetry-api
+    , linear-base
+    , monad-logger
+    , mtl
+    , optics-core
+    , optics-th
+    , optparse-generic
+    , prettyprinter
+    , profunctors
+    , relude                >=1.0
+    , resource-pool
+    , resourcet
+    , safe-exceptions
+    , shower
+    , time
+    , with-utf8
+
+  hs-source-dirs:     src
+  default-language:   Haskell2010
+
+common test-deps
+  build-depends:
+    , hspec
+    , hspec-contrib
+    , hspec-golden
+    , hspec-wai
+    , HUnit
+    , QuickCheck
+    , tasty
+    , tasty-hspec
+    , tasty-quickcheck
+
+common web-deps
+  build-depends:
+    , beam-core
+    , beam-migrate
+    , beam-postgres
+    , blaze-html
+    , cassava
+    , conduit
+    , http-client
+    , http-types
+    , servant-auth
+    , servant-auth-client
+    , servant-auth-server
+    , servant-auth-swagger
+    , servant-blaze
+    , servant-cassava
+    , servant-client
+    , servant-conduit
+    , servant-multipart
+    , servant-multipart-api
+    , servant-multipart-client
+    , servant-serialization
+    , servant-server
+    , servant-swagger
+    , servant-swagger-ui
+    , swagger2
+    , wai
+    , warp
+
+common db-deps
+  build-depends:
+    , esqueleto
+    , persistent
+    , persistent-documentation
+    , persistent-lens
+    , persistent-migration
+    , persistent-pagination
+    , persistent-postgresql
+    , persistent-postgresql-streaming
+    , postgresql-simple
+
+library
+  import:          shared, web-deps, db-deps
+  exposed-modules:
+    LocalLibrary.API
+    LocalLibrary.Config
+    LocalLibrary.Database.Migrate
+    LocalLibrary.Database.Schema
+    LocalLibrary.Greetings.API
+    LocalLibrary.Greetings.Model
+    LocalLibrary.Greetings.Queries
+    LocalLibrary.Greetings.SampleData
+
+  hs-source-dirs:  src
+
+executable server
+  import:         shared, web-deps, db-deps
+  main-is:        Main.hs
+  hs-source-dirs: app
+  other-modules:
+  build-depends:  local-library
+
+executable manage-db
+  import:         shared, web-deps, db-deps
+  main-is:        Main.hs
+  hs-source-dirs: db
+  build-depends:  local-library
+
+test-suite tests
+  import:         shared, test-deps, web-deps, db-deps
+  main-is:        Main.hs
+  type:           exitcode-stdio-1.0
+  hs-source-dirs: test
+  build-depends:  local-library
+  other-modules:
+    Spec
+    Spec.Greetings

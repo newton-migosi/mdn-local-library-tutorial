@@ -4,5 +4,66 @@
   "nixEnvSelector.nixFile": "${workspaceRoot}/shell.nix",
   // "nixEnvSelector.args": "--pure"
   "haskell.formattingProvider": "fourmolu",
-  "haskell.manageHLS": "PATH"
+  "haskell.manageHLS": "PATH",
+  "runItOn": {
+    "commands": [
+      {
+        "match": "flake\\.nix",
+        "isShellCommand": false,
+        "cmd": "nixEnvSelector.hitEnv"
+      }
+    ]
+  },
+  "insert-unicode.favorites": {
+    "directories": {
+      "Haskell": {
+        "directories": {},
+        "items": [
+          [
+            8759
+          ],
+          [
+            8658
+          ],
+          [
+            8594
+          ],
+          [
+            8592
+          ],
+          [
+            10522
+          ],
+          [
+            10521
+          ],
+          [
+            10523
+          ],
+          [
+            9733
+          ],
+          [
+            8704
+          ],
+          [
+            10631
+          ],
+          [
+            10632
+          ],
+          [
+            10214
+          ],
+          [
+            10215
+          ],
+          [
+            8888
+          ]
+        ]
+      }
+    },
+    "items": []
+  }
 }
