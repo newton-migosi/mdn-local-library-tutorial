@@ -4,7 +4,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module LocalLibrary.Greetings where
+module LocalLibrary.Greetings.API where
 
 import Control.Exception.Safe (throwM)
 import Data.Aeson (ToJSON (toJSON))

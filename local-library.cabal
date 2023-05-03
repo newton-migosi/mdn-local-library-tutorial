@@ -160,7 +160,7 @@ library
   exposed-modules:
     LocalLibrary.API
     LocalLibrary.Config
-    LocalLibrary.Greetings
+    LocalLibrary.Greetings.API
     LocalLibrary.Greetings.SampleData
 
   hs-source-dirs:  src
