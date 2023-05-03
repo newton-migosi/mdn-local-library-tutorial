@@ -3,10 +3,21 @@
 
 module LocalLibrary.Config where
 
+import Control.Monad.Logger (runStderrLoggingT)
 import Data.Aeson (decodeFileStrict)
 import Data.Aeson qualified as Aeson
 import Data.Pool (Pool, createPool)
-import Database.PostgreSQL.Simple (ConnectInfo (..), Connection, defaultConnectInfo)
+import Database.Persist.Postgresql (
+  PostgresConf (..),
+  SqlBackend,
+  createPostgresqlPoolWithConf,
+  defaultPostgresConfHooks,
+ )
+import Database.PostgreSQL.Simple (
+  ConnectInfo (..),
+  Connection,
+  defaultConnectInfo,
+ )
 import Database.PostgreSQL.Simple qualified as DB
 import Network.HTTP.Types.Status (Status)
 import Network.HTTP.Types.Status qualified as Http
@@ -16,7 +27,14 @@ import Network.Wai.Handler.Warp qualified as Warp
 import Optics.Getter (view)
 import Optics.Optic ((%%))
 import Optics.TH (makeFieldLabelsNoPrefix)
-import Options.Generic (ParseRecord, Unwrapped, Wrapped, unwrapRecord, (:::), type (<?>))
+import Options.Generic (
+  ParseRecord,
+  Unwrapped,
+  Wrapped,
+  unwrapRecord,
+  (:::),
+  type (<?>),
+ )
 import Prettyprinter (
   Pretty (pretty),
   defaultLayoutOptions,
@@ -96,6 +114,22 @@ createDbConnectionPool conf = do
     (view (#poolConfig %% #numStripes) conf)
     (fromInteger $ view (#poolConfig %% #idleTime) conf)
     (view (#poolConfig %% #maxResources) conf)
+
+createSqlConnectionPool :: AppConfig -> IO (Pool SqlBackend)
+createSqlConnectionPool _conf = runStderrLoggingT $ do
+  createPostgresqlPoolWithConf (mkPostgresConf _conf) defaultPostgresConfHooks
+
+mkPostgresConf :: AppConfig -> PostgresConf
+mkPostgresConf conf =
+  PostgresConf
+    { pgConnStr =
+        DB.postgreSQLConnectionString $
+          mkDatabaseConnectInfo $
+            view #postgresConfig conf
+    , pgPoolSize = view (#poolConfig %% #maxResources) conf
+    , pgPoolIdleTimeout = view (#poolConfig %% #idleTime) conf
+    , pgPoolStripes = view (#poolConfig %% #numStripes) conf
+    }
 
 mkDatabaseConnectInfo :: PostgresConfig -> ConnectInfo
 mkDatabaseConnectInfo postgresConfig =

@@ -2,8 +2,7 @@ module Main where
 
 import Main.Utf8 qualified as Utf8
 
-import LocalLibrary.Config (createDbConnectionPool, getSettings)
-import LocalLibrary.Database.Migrate (migrateLibraryDB)
+import LocalLibrary.Config qualified as Config
 
 main :: IO ()
 main = do
@@ -12,6 +11,6 @@ main = do
 
 manageDB :: IO ()
 manageDB =
-  getSettings
-    >>= traverse createDbConnectionPool
-    >>= traverse_ migrateLibraryDB
+  Config.getSettings
+    >>= traverse Config.createSqlConnectionPool
+    >>= traverse_ (const pass)
