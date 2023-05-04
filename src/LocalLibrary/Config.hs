@@ -87,6 +87,21 @@ data ConfigFilePaths w = ConfigFilePaths
 instance ParseRecord (ConfigFilePaths Wrapped)
 deriving stock instance Show (ConfigFilePaths Unwrapped)
 
+-- get config file paths from environment variables
+getSettingsEnv :: IO (Maybe AppConfig)
+getSettingsEnv = runMaybeT $ do
+  poolConfig <-
+    MaybeT (lookupEnv "POOL_CONFIG")
+      >>= MaybeT . decodeFileStrict
+  warpConfig <-
+    MaybeT (lookupEnv "WARP_CONFIG")
+      >>= MaybeT . decodeFileStrict
+  postgresConfig <-
+    MaybeT (lookupEnv "POSTGRES_CONFIG")
+      >>= MaybeT . decodeFileStrict
+  pure $
+    AppConfig poolConfig warpConfig postgresConfig
+
 getSettings :: IO (Maybe AppConfig)
 getSettings = do
   filePaths <- unwrapRecord @_ @ConfigFilePaths "Local Library server"

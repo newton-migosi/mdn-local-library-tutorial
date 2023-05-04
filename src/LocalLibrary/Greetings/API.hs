@@ -13,6 +13,7 @@ import Data.Aeson.Types qualified as Aeson
 import Data.Pool (Pool)
 import Database.Persist (
   Entity (Entity),
+  PersistStoreWrite (insertMany_),
   SelectOpt (LimitTo),
   selectList,
   (==.),
@@ -36,9 +37,9 @@ share
   , mkMigrate "migrateAll"
   ]
   [persistLowerCase|
-Greeting sql=greetings
+Greeting sql=hello
   langCode Text
-  greeting Text
+  phrase Text
   deriving Show Eq
 |]
 
@@ -54,12 +55,14 @@ queryLang lang_code =
   selectList [GreetingLangCode ==. lang_code] [LimitTo 1]
 
 handleLang :: Pool SqlBackend -> Text -> Handler Text
-handleLang pool langCode =
-  liftIO $ do
-    x <- runSqlPool (queryLang langCode) pool
-    case x of
-      [Entity _ greet] -> pure $ view greetingGreeting greet
-      _ -> throwM err404
+handleLang pool langCode = liftIO $ do
+  x <- runSqlPool (queryLang langCode) pool
+  case x of
+    [Entity _ greet] -> pure $ view greetingPhrase greet
+    _ -> throwM err404
+
+populateGreetingsTable :: MonadIO m => [Greeting] -> ReaderT SqlBackend m ()
+populateGreetingsTable = insertMany_
 
 instance ToJSON (Entity Greeting) where
   toJSON :: Entity Greeting -> Aeson.Value

@@ -21,7 +21,7 @@ main = do
 
 runServer :: IO ()
 runServer = void $ runMaybeT $ do
-  conf <- MaybeT Config.getSettings
+  conf <- MaybeT Config.getSettingsEnv
 
   let runSettings =
         Warp.runSettings

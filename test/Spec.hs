@@ -24,7 +24,7 @@ data ConfigParseError = ConfigParseError
 runTests :: IO ()
 runTests = do
   mDbPool <- runMaybeT $ do
-    conf <- MaybeT Config.getSettings
+    conf <- MaybeT Config.getSettingsEnv
     Config.createSqlConnectionPool conf & liftIO
 
   dbPool <- maybe (throw ConfigParseError) pure mDbPool
