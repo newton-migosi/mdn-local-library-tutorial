@@ -5,10 +5,7 @@ import Network.Wai.Handler.Warp qualified as Warp
 import Optics.Getter (view)
 import Servant (serve)
 
-import LocalLibrary.API (
-  API,
-  handle,
- )
+import LocalLibrary.API (API, handle)
 import LocalLibrary.Config qualified as Config
 
 {- |
@@ -24,14 +21,14 @@ main = do
 
 runServer :: IO ()
 runServer = void $ runMaybeT $ do
-  conf <- MaybeT Config.getSettings
+  conf <- MaybeT Config.getSettingsEnv
 
   let runSettings =
         Warp.runSettings
           . Warp.setLogger Config.customLogger
           . Config.mkWarpSettings
 
-  dbPool <- Config.createDbConnectionPool conf & liftIO
+  dbPool <- Config.createSqlConnectionPool conf & liftIO
 
   Servant.serve (Proxy @API) (handle dbPool)
     & runSettings (view #warpConfig conf)

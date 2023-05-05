@@ -1,6 +1,6 @@
 module LocalLibrary.Greetings.SampleData where
 
-import LocalLibrary.Greetings.Model (Greeting, GreetingT (Greeting))
+import LocalLibrary.Greetings.API (Greeting (Greeting))
 
 greetings :: [Greeting]
 greetings =

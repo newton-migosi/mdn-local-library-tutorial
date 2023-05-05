@@ -1,37 +1,69 @@
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
+
 module LocalLibrary.Greetings.API where
 
-import Control.Monad.Catch (throwM)
-import Data.Pool (Pool, withResource)
-import Database.Beam (
-  Database,
+import Control.Exception.Safe (throwM)
+import Data.Aeson (ToJSON (toJSON))
+import Data.Aeson.TH (defaultOptions, deriveJSON)
+import Data.Aeson.Types qualified as Aeson
+import Data.Pool (Pool)
+import Database.Persist (
+  Entity (Entity),
+  PersistStoreWrite (insertMany_),
+  SelectOpt (LimitTo),
+  selectList,
+  (==.),
  )
-import Database.Beam.Postgres (
-  Connection,
-  Postgres,
-  runBeamPostgres,
+import Database.Persist.Postgresql (SqlBackend)
+import Database.Persist.Sql (keyValueEntityToJSON, runSqlPool)
+import Database.Persist.TH (
+  MkPersistSettings (mpsGenerateLenses),
+  mkMigrate,
+  mkPersist,
+  persistLowerCase,
+  share,
+  sqlSettings,
  )
-import LocalLibrary.Greetings.Model (
-  GreetingEntity,
-  GreetingT (Greeting),
- )
-import LocalLibrary.Greetings.Queries (selectGreeting)
-import Servant (Capture, Get, JSON, (:>))
-import Servant.Server (Handler, err404)
+import Relude.Extra.Lens (view)
+import Servant (Capture, Get, JSON, type (:>))
+import Servant.Server (Handler, Server, err404)
+
+share
+  [ mkPersist sqlSettings {mpsGenerateLenses = True}
+  , mkMigrate "migrateAll"
+  ]
+  [persistLowerCase|
+Greeting sql=hello
+  langCode Text
+  phrase Text
+  deriving Show Eq
+|]
+
+deriveJSON defaultOptions ''Greeting
 
 type API = Capture "lang" Text :> Get '[JSON] Text
 
-handleLang ::
-  forall db.
-  (Database Postgres db) =>
-  Pool Connection ->
-  GreetingEntity db ->
-  Text ->
-  Handler Text
-handleLang connection table lang = liftIO $ do
-  withResource connection $ \conn -> do
-    mRes <-
-      runBeamPostgres conn $ selectGreeting table lang
+handle :: Pool SqlBackend -> Server API
+handle = handleLang
 
-    case mRes of
-      Nothing -> throwM err404
-      Just (Greeting _ greeting) -> return greeting
+queryLang :: MonadIO m => Text -> ReaderT SqlBackend m [Entity Greeting]
+queryLang lang_code =
+  selectList [GreetingLangCode ==. lang_code] [LimitTo 1]
+
+handleLang :: Pool SqlBackend -> Text -> Handler Text
+handleLang pool langCode = liftIO $ do
+  x <- runSqlPool (queryLang langCode) pool
+  case x of
+    [Entity _ greet] -> pure $ view greetingPhrase greet
+    _ -> throwM err404
+
+populateGreetingsTable :: MonadIO m => [Greeting] -> ReaderT SqlBackend m ()
+populateGreetingsTable = insertMany_
+
+instance ToJSON (Entity Greeting) where
+  toJSON :: Entity Greeting -> Aeson.Value
+  toJSON = keyValueEntityToJSON

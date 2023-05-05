@@ -2,8 +2,11 @@ module Main where
 
 import Main.Utf8 qualified as Utf8
 
-import LocalLibrary.Config (createDbConnectionPool, getSettings)
-import LocalLibrary.Database.Migrate (migrateLibraryDB)
+import Database.Persist.Postgresql (runMigration, runSqlPool)
+
+import LocalLibrary.Config qualified as Config
+import LocalLibrary.Greetings.API (migrateAll, populateGreetingsTable)
+import LocalLibrary.Greetings.SampleData qualified as SampleData
 
 main :: IO ()
 main = do
@@ -11,7 +14,12 @@ main = do
     manageDB
 
 manageDB :: IO ()
-manageDB =
-  getSettings
-    >>= traverse createDbConnectionPool
-    >>= traverse_ migrateLibraryDB
+manageDB = void $ runMaybeT $ do
+  conf <- MaybeT Config.getSettings
+  dbPool <- Config.createSqlConnectionPool conf & liftIO
+  let migrateGreetingsTable = do
+        runMigration migrateAll
+        populateGreetingsTable SampleData.greetings
+  liftIO $
+    runSqlPool migrateGreetingsTable dbPool
+  pass
