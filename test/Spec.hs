@@ -2,7 +2,7 @@ module Spec where
 
 import Control.Exception.Safe (throw)
 import Data.Pool (Pool)
-import Database.Persist.Postgresql (SqlBackend)
+import Database.Persist.SqlBackend (SqlBackend)
 import Network.Wai.Handler.Warp qualified as Warp
 import Servant.Server (serve)
 import Spec.Greetings qualified as Greetings
@@ -24,8 +24,8 @@ data ConfigParseError = ConfigParseError
 runTests :: IO ()
 runTests = do
   mDbPool <- runMaybeT $ do
-    conf <- MaybeT Config.getSettingsEnv
-    Config.createSqlConnectionPool conf & liftIO
+    conf <- MaybeT Config.getMockSettingsEnv
+    Config.createSqlLiteConnectionPool conf & liftIO
 
   dbPool <- maybe (throw ConfigParseError) pure mDbPool
 

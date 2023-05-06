@@ -9,10 +9,14 @@ import Data.Aeson qualified as Aeson
 import Data.Pool (Pool, createPool)
 import Database.Persist.Postgresql (
   PostgresConf (..),
-  SqlBackend,
   createPostgresqlPoolWithConf,
   defaultPostgresConfHooks,
  )
+import Database.Persist.SqlBackend (SqlBackend)
+import Database.Persist.Sqlite (
+  createSqlitePoolFromInfo,
+ )
+import Database.Persist.Sqlite qualified as SQLite
 import Database.PostgreSQL.Simple (
   ConnectInfo (..),
   Connection,
@@ -52,6 +56,13 @@ data AppConfig = AppConfig
   }
   deriving stock (Show, Generic)
 
+data MockAppConfig = MockAppConfig
+  { poolConfig :: PoolConfig
+  , warpConfig :: WarpConfig
+  , dbPath :: Text
+  }
+  deriving stock (Show, Generic)
+
 data PoolConfig = PoolConfig
   { numStripes :: Int
   , idleTime :: Integer
@@ -77,6 +88,12 @@ data PostgresConfig = PostgresConfig
   deriving stock (Show, Generic)
   deriving anyclass (Aeson.ToJSON, Aeson.FromJSON)
 
+newtype SqliteConfig = SqliteConfig
+  { database :: Text
+  }
+  deriving stock (Show, Generic)
+  deriving anyclass (Aeson.ToJSON, Aeson.FromJSON)
+
 data ConfigFilePaths w = ConfigFilePaths
   { poolConfig :: w ::: FilePath <?> "Path to configuration for managing connections to PostgreSQL"
   , warpConfig :: w ::: FilePath <?> "Path to configuration for setting up warp server"
@@ -87,7 +104,6 @@ data ConfigFilePaths w = ConfigFilePaths
 instance ParseRecord (ConfigFilePaths Wrapped)
 deriving stock instance Show (ConfigFilePaths Unwrapped)
 
--- get config file paths from environment variables
 getSettingsEnv :: IO (Maybe AppConfig)
 getSettingsEnv = runMaybeT $ do
   poolConfig <-
@@ -101,6 +117,20 @@ getSettingsEnv = runMaybeT $ do
       >>= MaybeT . decodeFileStrict
   pure $
     AppConfig poolConfig warpConfig postgresConfig
+
+-- read sqlite db file from env
+getMockSettingsEnv :: IO (Maybe MockAppConfig)
+getMockSettingsEnv = runMaybeT $ do
+  poolConfig <-
+    MaybeT (lookupEnv "POOL_CONFIG")
+      >>= MaybeT . decodeFileStrict
+  warpConfig <-
+    MaybeT (lookupEnv "WARP_CONFIG")
+      >>= MaybeT . decodeFileStrict
+  sqliteConfig <-
+    MaybeT (lookupEnv "SQLITE_DB") <&> toText
+  pure $
+    MockAppConfig poolConfig warpConfig sqliteConfig
 
 getSettings :: IO (Maybe AppConfig)
 getSettings = do
@@ -131,8 +161,13 @@ createDbConnectionPool conf = do
     (view (#poolConfig %% #maxResources) conf)
 
 createSqlConnectionPool :: AppConfig -> IO (Pool SqlBackend)
-createSqlConnectionPool _conf = runStderrLoggingT $ do
-  createPostgresqlPoolWithConf (mkPostgresConf _conf) defaultPostgresConfHooks
+createSqlConnectionPool conf = runStderrLoggingT $ do
+  createPostgresqlPoolWithConf (mkPostgresConf conf) defaultPostgresConfHooks
+
+createSqlLiteConnectionPool :: MockAppConfig -> IO (Pool SqlBackend)
+createSqlLiteConnectionPool conf = runStderrLoggingT $ do
+  let connectInfo = SQLite.mkSqliteConnectionInfo (view #dbPath conf)
+  createSqlitePoolFromInfo connectInfo (view (#poolConfig %% #maxResources) conf)
 
 mkPostgresConf :: AppConfig -> PostgresConf
 mkPostgresConf conf =
@@ -163,6 +198,8 @@ mkWarpSettings warpConfig =
     & Warp.setTimeout (view #timeout warpConfig)
 
 makeFieldLabelsNoPrefix ''AppConfig
+makeFieldLabelsNoPrefix ''MockAppConfig
+makeFieldLabelsNoPrefix ''SqliteConfig
 makeFieldLabelsNoPrefix ''PostgresConfig
 makeFieldLabelsNoPrefix ''WarpConfig
 makeFieldLabelsNoPrefix ''PoolConfig

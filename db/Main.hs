@@ -15,8 +15,8 @@ main = do
 
 manageDB :: IO ()
 manageDB = void $ runMaybeT $ do
-  conf <- MaybeT Config.getSettings
-  dbPool <- Config.createSqlConnectionPool conf & liftIO
+  conf <- MaybeT Config.getMockSettingsEnv
+  dbPool <- Config.createSqlLiteConnectionPool conf & liftIO
   let migrateGreetingsTable = do
         runMigration migrateAll
         populateGreetingsTable SampleData.greetings

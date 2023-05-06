@@ -18,8 +18,8 @@ import Database.Persist (
   selectList,
   (==.),
  )
-import Database.Persist.Postgresql (SqlBackend)
 import Database.Persist.Sql (keyValueEntityToJSON, runSqlPool)
+import Database.Persist.SqlBackend (SqlBackend)
 import Database.Persist.TH (
   MkPersistSettings (mpsGenerateLenses),
   mkMigrate,

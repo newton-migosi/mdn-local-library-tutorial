@@ -1,7 +1,7 @@
 module LocalLibrary.API where
 
 import Data.Pool (Pool)
-import Database.Persist.Postgresql (SqlBackend)
+import Database.Persist.SqlBackend (SqlBackend)
 import Servant.Server (Server)
 
 import LocalLibrary.Greetings.API qualified as Greetings
