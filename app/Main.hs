@@ -21,14 +21,14 @@ main = do
 
 runServer :: IO ()
 runServer = void $ runMaybeT $ do
-  conf <- MaybeT Config.getSettingsEnv
+  conf <- MaybeT Config.getMockSettingsEnv
 
   let runSettings =
         Warp.runSettings
           . Warp.setLogger Config.customLogger
           . Config.mkWarpSettings
 
-  dbPool <- Config.createSqlConnectionPool conf & liftIO
+  dbPool <- Config.createSqlLiteConnectionPool conf & liftIO
 
   Servant.serve (Proxy @API) (handle dbPool)
     & runSettings (view #warpConfig conf)

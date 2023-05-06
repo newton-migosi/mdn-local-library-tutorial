@@ -40,6 +40,11 @@
               treefmt = config.treefmt.build.wrapper;
             } // config.treefmt.build.programs;
             hlsCheck.enable = true;
+            mkShellArgs = {
+              shellHook = ''
+                set -a; source ./config.sh; set +a
+              '';
+            };
           };
           autoWire = [ "packages" "apps" "checks" ]; # Wire all but the devShell
         };
@@ -121,46 +126,6 @@
             config.flake-root.devShell
             config.mission-control.devShell
           ];
-        };
-
-        # Shell using devenv that comes with postgres
-        devenv.shells.postgres = {
-          # https://devenv.sh/reference/options/
-
-          name = "Local library app";
-
-          # Make use of the Starship command prompt when this development environment
-          # is manually activated (via `nix develop --impure`).
-          # See https://starship.rs/ for details on the prompt itself.
-          starship.enable = true;
-
-          difftastic.enable = true;
-
-          packages = [ pkgs.hello ];
-
-          # The postgres service we need to get running.
-          # Configuration options are documented at https://devenv.sh/reference/options/#servicespostgressettings
-          services.postgres.enable = true;
-
-          # On the first invocation of `devenv up`, create a database for
-          # our app to store data in.
-          services.postgres.initdbArgs = [ "--locale=C" "--encoding=UTF8" ];
-          services.postgres.initialDatabases = [
-            {
-              name = "local_library";
-              schema = ./schema.sql;
-            }
-          ];
-          services.postgres.listen_addresses = "127.0.0.1";
-          # Create a postgres user called 'chief_librarian' which has ownership
-          # over the 'local_library' database.
-          services.postgres.initialScript = ''
-            CREATE USER postgres SUPERUSER;
-            CREATE USER chief_librarian;
-            ALTER DATABASE local_library OWNER TO chief_librarian;
-          '';
-
-          services.adminer.enable = true;
         };
       };
     };

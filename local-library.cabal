@@ -1,5 +1,9 @@
 cabal-version:      2.4
 name:               local-library
+
+-- PVP summary:     +-+------- breaking API changes
+--                  | | +----- non-breaking API additions
+--                  | | | +--- code changes with no API change
 version:            0.1.0.0
 category:           Web
 
@@ -153,6 +157,7 @@ common db-deps
     , persistent-pagination
     , persistent-postgresql
     , persistent-postgresql-streaming
+    , persistent-sqlite
     , postgresql-simple
 
 library
