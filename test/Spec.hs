@@ -23,11 +23,11 @@ data ConfigParseError = ConfigParseError
 
 runTests :: IO ()
 runTests = do
-  mDbPool <- runMaybeT $ do
-    conf <- MaybeT Config.getMockSettingsEnv
+  mDbPool <- runExceptT $ do
+    conf <- ExceptT Config.getMockSettingsEnv
     Config.createSqlLiteConnectionPool conf & liftIO
 
-  dbPool <- maybe (throw ConfigParseError) pure mDbPool
+  dbPool <- either throw pure mDbPool
 
   hspec $ spec dbPool
 

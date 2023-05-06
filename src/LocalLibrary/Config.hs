@@ -104,6 +104,15 @@ data ConfigFilePaths w = ConfigFilePaths
 instance ParseRecord (ConfigFilePaths Wrapped)
 deriving stock instance Show (ConfigFilePaths Unwrapped)
 
+data ConfigError
+  = MissingEnv Text
+  | DecodeFileError String
+  deriving stock (Show)
+  deriving anyclass (Exception)
+
+liftMaybe :: forall f t l r. Applicative f => (t -> l) -> t -> Maybe r -> f (Either l r)
+liftMaybe f e x = pure $ maybeToRight (f e) x
+
 getSettingsEnv :: IO (Maybe AppConfig)
 getSettingsEnv = runMaybeT $ do
   poolConfig <-
@@ -119,16 +128,16 @@ getSettingsEnv = runMaybeT $ do
     AppConfig poolConfig warpConfig postgresConfig
 
 -- read sqlite db file from env
-getMockSettingsEnv :: IO (Maybe MockAppConfig)
-getMockSettingsEnv = runMaybeT $ do
+getMockSettingsEnv :: IO (Either ConfigError MockAppConfig)
+getMockSettingsEnv = runExceptT $ do
   poolConfig <-
-    MaybeT (lookupEnv "POOL_CONFIG")
-      >>= MaybeT . decodeFileStrict
+    ExceptT (lookupEnv "POOL_CONFIG" >>= liftMaybe MissingEnv "POOL_CONFIG")
+      >>= ExceptT . (\x -> decodeFileStrict x >>= liftMaybe DecodeFileError x)
   warpConfig <-
-    MaybeT (lookupEnv "WARP_CONFIG")
-      >>= MaybeT . decodeFileStrict
+    ExceptT (lookupEnv "WARP_CONFIG" >>= liftMaybe MissingEnv "WARP_CONFIG")
+      >>= ExceptT . (\x -> decodeFileStrict x >>= liftMaybe DecodeFileError x)
   sqliteConfig <-
-    MaybeT (lookupEnv "SQLITE_DB") <&> toText
+    ExceptT (lookupEnv "SQLITE_DB" >>= liftMaybe MissingEnv "SQLITE_DB") <&> toText
   pure $
     MockAppConfig poolConfig warpConfig sqliteConfig
 

@@ -20,8 +20,8 @@ main = do
     runServer
 
 runServer :: IO ()
-runServer = void $ runMaybeT $ do
-  conf <- MaybeT Config.getMockSettingsEnv
+runServer = void $ runExceptT $ do
+  conf <- ExceptT Config.getMockSettingsEnv
 
   let runSettings =
         Warp.runSettings
