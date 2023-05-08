@@ -14,8 +14,8 @@ main = do
     manageDB
 
 manageDB :: IO ()
-manageDB = void $ runMaybeT $ do
-  conf <- MaybeT Config.getMockSettingsEnv
+manageDB = void $ runExceptT $ do
+  conf <- ExceptT Config.getMockSettingsEnv
   dbPool <- Config.createSqlLiteConnectionPool conf & liftIO
   let migrateGreetingsTable = do
         runMigration migrateAll

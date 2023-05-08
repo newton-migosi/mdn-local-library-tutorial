@@ -23,6 +23,7 @@ import Database.PostgreSQL.Simple (
   defaultConnectInfo,
  )
 import Database.PostgreSQL.Simple qualified as DB
+import Language.Haskell.TH.Env (envQ)
 import Network.HTTP.Types.Status (Status)
 import Network.HTTP.Types.Status qualified as Http
 import Network.Wai (Request)
@@ -104,6 +105,16 @@ data ConfigFilePaths w = ConfigFilePaths
 instance ParseRecord (ConfigFilePaths Wrapped)
 deriving stock instance Show (ConfigFilePaths Unwrapped)
 
+data ConfigError
+  = MissingEnv Text
+  | DecodeFileError String
+  | ParseError Text
+  deriving stock (Show)
+  deriving anyclass (Exception)
+
+liftMaybe :: forall f t l r. Applicative f => (t -> l) -> t -> Maybe r -> f (Either l r)
+liftMaybe f e x = pure $ maybeToRight (f e) x
+
 getSettingsEnv :: IO (Maybe AppConfig)
 getSettingsEnv = runMaybeT $ do
   poolConfig <-
@@ -118,17 +129,52 @@ getSettingsEnv = runMaybeT $ do
   pure $
     AppConfig poolConfig warpConfig postgresConfig
 
+getMockSettingsEnv' :: IO (Either ConfigError MockAppConfig)
+getMockSettingsEnv' = do
+  let pool_num_stripes = $$(envQ @String "POOL_NUM_STRIPES")
+      pool_idle_timeout = $$(envQ @String "POOL_IDLE_TIMEOUT")
+      pool_max_resources = $$(envQ @String "POOL_MAX_RESOURCES")
+      sqlite_db_file = $$(envQ @String "SQLITE_DB_FILE")
+      warp_port = $$(envQ @String "WARP_PORT")
+      warp_timeout = $$(envQ @String "WARP_TIMEOUT")
+
+      pool_config =
+        PoolConfig
+          <$> reportEnvErrors "POOL_NUM_STRIPES" pool_num_stripes
+          <*> reportEnvErrors "POOL_IDLE_TIMEOUT" pool_idle_timeout
+          <*> reportEnvErrors "POOL_MAX_RESOURCES" pool_max_resources
+
+      warp_config =
+        WarpConfig
+          <$> reportEnvErrors "WARP_PORT" warp_port
+          <*> reportEnvErrors "WARP_TIMEOUT" warp_timeout
+
+      sqlite_config =
+        maybeToRight (MissingEnv "SQLITE_DB_FILE") sqlite_db_file
+          <&> toText
+
+  pure $
+    MockAppConfig
+      <$> pool_config
+      <*> warp_config
+      <*> sqlite_config
+
+reportEnvErrors :: forall {b}. Read b => Text -> Maybe String -> Either ConfigError b
+reportEnvErrors varName mVar =
+  maybeToRight (MissingEnv varName) mVar
+    >>= first ParseError . readEither
+
 -- read sqlite db file from env
-getMockSettingsEnv :: IO (Maybe MockAppConfig)
-getMockSettingsEnv = runMaybeT $ do
+getMockSettingsEnv :: IO (Either ConfigError MockAppConfig)
+getMockSettingsEnv = runExceptT $ do
   poolConfig <-
-    MaybeT (lookupEnv "POOL_CONFIG")
-      >>= MaybeT . decodeFileStrict
+    ExceptT (lookupEnv "POOL_CONFIG" >>= liftMaybe MissingEnv "POOL_CONFIG")
+      >>= ExceptT . (\x -> decodeFileStrict x >>= liftMaybe DecodeFileError x)
   warpConfig <-
-    MaybeT (lookupEnv "WARP_CONFIG")
-      >>= MaybeT . decodeFileStrict
+    ExceptT (lookupEnv "WARP_CONFIG" >>= liftMaybe MissingEnv "WARP_CONFIG")
+      >>= ExceptT . (\x -> decodeFileStrict x >>= liftMaybe DecodeFileError x)
   sqliteConfig <-
-    MaybeT (lookupEnv "SQLITE_DB") <&> toText
+    ExceptT (lookupEnv "SQLITE_DB" >>= liftMaybe MissingEnv "SQLITE_DB") <&> toText
   pure $
     MockAppConfig poolConfig warpConfig sqliteConfig
 
@@ -152,7 +198,7 @@ customLogger req status _maybeFileSize =
       ]
 
 createDbConnectionPool :: AppConfig -> IO (Pool Connection)
-createDbConnectionPool conf = do
+createDbConnectionPool conf =
   createPool
     (DB.connect $ mkDatabaseConnectInfo $ view #postgresConfig conf)
     DB.close
@@ -161,8 +207,9 @@ createDbConnectionPool conf = do
     (view (#poolConfig %% #maxResources) conf)
 
 createSqlConnectionPool :: AppConfig -> IO (Pool SqlBackend)
-createSqlConnectionPool conf = runStderrLoggingT $ do
-  createPostgresqlPoolWithConf (mkPostgresConf conf) defaultPostgresConfHooks
+createSqlConnectionPool conf =
+  runStderrLoggingT $
+    createPostgresqlPoolWithConf (mkPostgresConf conf) defaultPostgresConfHooks
 
 createSqlLiteConnectionPool :: MockAppConfig -> IO (Pool SqlBackend)
 createSqlLiteConnectionPool conf = runStderrLoggingT $ do

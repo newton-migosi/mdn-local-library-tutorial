@@ -103,6 +103,7 @@ common shared
     , resourcet
     , safe-exceptions
     , shower
+    , th-env
     , time
     , with-utf8
 
