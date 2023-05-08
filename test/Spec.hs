@@ -2,6 +2,7 @@ module Spec where
 
 import Control.Exception.Safe (throw)
 import Data.Pool (Pool)
+import Database.Persist.Postgresql (runMigration, runSqlPool)
 import Database.Persist.SqlBackend (SqlBackend)
 import Network.Wai.Handler.Warp qualified as Warp
 import Servant.Server (serve)
@@ -16,6 +17,9 @@ import Test.Hspec.Wai ()
 
 import LocalLibrary.API qualified as LocalLibrary
 import LocalLibrary.Config qualified as Config
+import LocalLibrary.Greetings.API (migrateAll, populateGreetingsTable)
+import LocalLibrary.Greetings.SampleData qualified as SampleData
+import Optics.Setter (set)
 
 data ConfigParseError = ConfigParseError
   deriving stock (Show)
@@ -24,10 +28,18 @@ data ConfigParseError = ConfigParseError
 runTests :: IO ()
 runTests = do
   mDbPool <- runExceptT $ do
-    conf <- ExceptT Config.getMockSettingsEnv
-    Config.createSqlLiteConnectionPool conf & liftIO
+    conf <- ExceptT Config.getMockSettingsEnv'
+    let conf' = conf & set #dbPath "test.db"
+    Config.createSqlLiteConnectionPool conf' & liftIO
 
   dbPool <- either throw pure mDbPool
+
+  let migrateGreetingsTable = do
+        runMigration migrateAll
+        populateGreetingsTable SampleData.greetings
+
+  liftIO $
+    runSqlPool migrateGreetingsTable dbPool
 
   hspec $ spec dbPool
 

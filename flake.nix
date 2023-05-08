@@ -33,7 +33,18 @@
         # See https://github.com/srid/haskell-flake/blob/master/example/flake.nix
         haskellProjects.default = {
           # packages.local-library.root = ./.; # Auto-discovered by haskell-flake
-          overrides = self: super: { };
+          overrides = self: super: {
+            # set env vars
+            local-library = super.local-library.overrideAttrs (_: _: {
+              POSTGRES_CONF = ./config/static/postgres.json;
+              POOL_NUM_STRIPES = 1;
+              POOL_MAX_RESOURCES = 5;
+              POOL_IDLE_TIMEOUT = 10;
+              SQLITE_DB_FILE = ./mock.db;
+              WARP_PORT = 8084;
+              WARP_TIMEOUT = 30;
+            });
+          };
           devShell = {
             tools = hp: {
               inherit (hp) haskell-debug-adapter ghci-dap;
@@ -42,7 +53,12 @@
             hlsCheck.enable = true;
             mkShellArgs = {
               shellHook = ''
-                set -a; source ./config.sh; set +a
+                export POOL_NUM_STRIPES=1;
+                export POOL_MAX_RESOURCES=5;
+                export POOL_IDLE_TIMEOUT=10;
+                export SQLITE_DB_FILE=./mock.db;
+                export WARP_PORT=8084;
+                export WARP_TIMEOUT=30;
               '';
             };
           };
